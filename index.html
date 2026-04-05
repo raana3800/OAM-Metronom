@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.4">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">import React, { useEffect, useRef, useState } from "react";</p>
+<p class="p1">import { Card, CardContent } from "@/components/ui/card";</p>
+<p class="p1">import { Button } from "@/components/ui/button";</p>
+<p class="p1">import { Music, Square, Play } from "lucide-react";</p>
+<p class="p2"><br></p>
+<p class="p1">const SONGS = [</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ title: "James Blunt", bpm: 105 },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ title: "Paramore", bpm: 70 },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ title: "Bruno Mars", bpm: 150 },</p>
+<p class="p1">];</p>
+<p class="p2"><br></p>
+<p class="p1">export default function ThreeSongMetronomeApp() {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const audioContextRef = useRef(null);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const intervalRef = useRef(null);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [activeSong, setActiveSong] = useState(null);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [isPlaying, setIsPlaying] = useState(false);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [flash, setFlash] = useState(false);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const ensureAudioContext = async () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if (!audioContextRef.current) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const AudioContextClass = window.AudioContext || window.webkitAudioContext;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>audioContextRef.current = new AudioContextClass();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>if (audioContextRef.current.state === "suspended") {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>await audioContextRef.current.resume();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>return audioContextRef.current;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>// 🔥 besserer, knackiger Klick</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const clickSound = async () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const ctx = await ensureAudioContext();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const now = ctx.currentTime;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const oscillator = ctx.createOscillator();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const gain = ctx.createGain();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>oscillator.type = "square";</p>
+<p class="p1"><span class="Apple-converted-space">    </span>oscillator.frequency.value = 1800; // setzt sich besser durch</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>gain.gain.setValueAtTime(0.0001, now);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>gain.gain.exponentialRampToValueAtTime(0.25, now + 0.002);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>oscillator.connect(gain);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>gain.connect(ctx.destination);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>oscillator.start(now);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>oscillator.stop(now + 0.055);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>setFlash(true);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>window.setTimeout(() =&gt; setFlash(false), 90);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const stopMetronome = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if (intervalRef.current) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>clearInterval(intervalRef.current);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>intervalRef.current = null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setIsPlaying(false);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setActiveSong(null);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const startMetronome = async (song) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const isSameSongPlaying = activeSong?.title === song.title &amp;&amp; isPlaying;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>if (isSameSongPlaying) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>stopMetronome();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>if (intervalRef.current) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>clearInterval(intervalRef.current);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>intervalRef.current = null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>setActiveSong(song);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setIsPlaying(true);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const intervalMs = 60000 / song.bpm;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>await clickSound();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>intervalRef.current = window.setInterval(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>clickSound();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}, intervalMs);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>useEffect(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>return () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (intervalRef.current) clearInterval(intervalRef.current);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (audioContextRef.current &amp;&amp; audioContextRef.current.state !== "closed") {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>audioContextRef.current.close();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}, []);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>return (</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div className="min-h-screen bg-black text-white flex items-center justify-center p-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;Card className="w-full max-w-md rounded-3xl shadow-2xl border-0 bg-zinc-900"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;CardContent className="p-6 md:p-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div className="flex items-center gap-3 mb-6"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div className="w-11 h-11 rounded-2xl bg-white text-black flex items-center justify-center shadow-md"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;Music className="w-5 h-5" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;h1 className="text-2xl font-bold leading-tight"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>Once A Month - Bei Chéz Heinz</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>&lt;p className="text-sm text-zinc-400"&gt;Tap = Start / Stop&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div className="mb-6 rounded-3xl bg-black text-white p-6 text-center border border-zinc-800"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div</p>
+<p class="p1"><span class="Apple-converted-space">              </span>className={`mx-auto mb-4 h-4 w-4 rounded-full transition-all duration-75 ${</p>
+<p class="p1"><span class="Apple-converted-space">                </span>flash ? "scale-125 bg-white" : "scale-100 bg-zinc-600"</p>
+<p class="p1"><span class="Apple-converted-space">              </span>}`}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div className="text-xs uppercase tracking-[0.3em] text-zinc-500"&gt;Aktiv&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div className="mt-2 text-3xl font-bold"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>{activeSong ? activeSong.title : "–"}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div className="mt-1 text-lg text-zinc-400"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>{activeSong ? `${activeSong.bpm} BPM` : "Noch nicht gestartet"}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div className="grid gap-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{SONGS.map((song) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">              </span>const active = activeSong?.title === song.title &amp;&amp; isPlaying;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>return (</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;Button</p>
+<p class="p1"><span class="Apple-converted-space">                  </span>key={song.title}</p>
+<p class="p1"><span class="Apple-converted-space">                  </span>onClick={() =&gt; startMetronome(song)}</p>
+<p class="p1"><span class="Apple-converted-space">                  </span>className={`w-full rounded-2xl h-20 text-lg font-bold shadow-lg ${</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>active ? "bg-white text-black" : "bg-zinc-800 text-white"</p>
+<p class="p1"><span class="Apple-converted-space">                  </span>}`}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                  </span>&lt;span className="flex items-center justify-between w-full px-2"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;span className="flex items-center gap-3"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                      </span>{active ? &lt;Square className="w-5 h-5" /&gt; : &lt;Play className="w-5 h-5" /&gt;}</p>
+<p class="p1"><span class="Apple-converted-space">                      </span>{song.title}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;span&gt;{song.bpm}&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                  </span>&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/Button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">              </span>);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>})}</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/CardContent&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/Card&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>);</p>
+<p class="p1">}</p>
+</body>
+</html>
